@@ -1,0 +1,335 @@
+{
+  "version": 1,
+  "jobId": "2134bb5f-7c97-44cc-981f-30560f595928",
+  "sessionId": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+  "scopeKey": "d48313de8a5d0d10634297133cdda8b77ac2dbd7777869c576fe69918c36bbaa",
+  "revision": 41,
+  "createdAt": "2026-09-09T07:35:00.710Z",
+  "updatedAt": "2026-09-09T07:35:01.918Z",
+  "producerGraceExpiresAt": "2026-09-09T07:35:30.711Z",
+  "bestEffortDeadlineAt": "2026-09-09T07:36:21.711Z",
+  "producers": {
+    "core": {
+      "state": "sealed",
+      "intentKey": "e6a269c7258dfb82888aecab1e730c80c7558c92ff686fbf3b510b8d509c55b5",
+      "payloadDigest": "e6a269c7258dfb82888aecab1e730c80c7558c92ff686fbf3b510b8d509c55b5",
+      "sealedAt": "2026-09-09T07:35:00.766Z",
+      "sealedBy": "foreground"
+    },
+    "wiki": {
+      "state": "no-op",
+      "sealedAt": "2026-09-09T07:35:00.710Z",
+      "sealedBy": "wiki-producer"
+    }
+  },
+  "actions": {
+    "foreground-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "completed",
+      "attempts": 0,
+      "idempotencyKey": "febf6dba2f2536433960a07f7cedce72e946b43ced0896570df80f017b8914d2",
+      "payload": {
+        "transcriptPath": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+        "cwd": "/Users/notabhk/grid-mobile",
+        "reason": "other",
+        "input": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "transcript_path": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+          "cwd": "/Users/notabhk/grid-mobile",
+          "scratchpad_dir": "/private/tmp/claude-501/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95/scratchpad",
+          "prompt_id": "b4acbe96-2b45-4596-a2bb-5bb5b306474e",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "ended_at": "2026-09-09T07:35:00.703Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {},
+        "foregroundResult": {
+          "removedTransientFiles": 2,
+          "completedAt": "2026-09-09T07:35:00.766Z"
+        }
+      },
+      "budgetMs": 9000,
+      "completedAt": "2026-09-09T07:35:00.766Z",
+      "lastOutcomeCode": "completed"
+    },
+    "wiki-capture": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "completed",
+      "attempts": 0,
+      "idempotencyKey": "1719cd1ef5b51e0269b78c4cb8c9308c9c1f7b82fd1c067fc034c060f23863f5",
+      "payload": {},
+      "budgetMs": 9000,
+      "completedAt": "2026-09-09T07:35:00.710Z"
+    },
+    "team-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "completed",
+      "attempts": 1,
+      "idempotencyKey": "cee6ac31df545408e1e822247ac249b3f8182a98a5fe8e448ae3b251e55bdee1",
+      "payload": {
+        "transcriptPath": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+        "cwd": "/Users/notabhk/grid-mobile",
+        "reason": "other",
+        "input": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "transcript_path": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+          "cwd": "/Users/notabhk/grid-mobile",
+          "scratchpad_dir": "/private/tmp/claude-501/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95/scratchpad",
+          "prompt_id": "b4acbe96-2b45-4596-a2bb-5bb5b306474e",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "ended_at": "2026-09-09T07:35:00.703Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 9000,
+      "claimedAt": "2026-09-09T07:35:00.815Z",
+      "runner": {
+        "attempt": 1,
+        "runnerNonce": "2705003b-1a8d-4694-879a-274684b281a9",
+        "phase": "terminal",
+        "deadlineAt": "2026-09-09T07:35:10.785Z"
+      },
+      "lastOutcomeCode": "completed",
+      "completedAt": "2026-09-09T07:35:00.956Z"
+    },
+    "python-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "completed",
+      "attempts": 1,
+      "idempotencyKey": "1f1370c4ac056606059d517e2f106b602d8cbcb04587b3fcc5f3b9f89e649cd0",
+      "payload": {
+        "transcriptPath": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+        "cwd": "/Users/notabhk/grid-mobile",
+        "reason": "other",
+        "input": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "transcript_path": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+          "cwd": "/Users/notabhk/grid-mobile",
+          "scratchpad_dir": "/private/tmp/claude-501/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95/scratchpad",
+          "prompt_id": "b4acbe96-2b45-4596-a2bb-5bb5b306474e",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "ended_at": "2026-09-09T07:35:00.703Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 9000,
+      "claimedAt": "2026-09-09T07:35:00.973Z",
+      "runner": {
+        "attempt": 1,
+        "runnerNonce": "5d7dec08-556b-4e79-972c-d38c7a83a4ea",
+        "phase": "terminal",
+        "deadlineAt": "2026-09-09T07:35:10.785Z"
+      },
+      "lastOutcomeCode": "completed",
+      "completedAt": "2026-09-09T07:35:01.141Z"
+    },
+    "reply-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "completed",
+      "attempts": 1,
+      "idempotencyKey": "0b3a8b47c28b26d56aca004d4f572b96c118f16819c0d35162418816f9a5420a",
+      "payload": {
+        "transcriptPath": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+        "cwd": "/Users/notabhk/grid-mobile",
+        "reason": "other",
+        "input": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "transcript_path": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+          "cwd": "/Users/notabhk/grid-mobile",
+          "scratchpad_dir": "/private/tmp/claude-501/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95/scratchpad",
+          "prompt_id": "b4acbe96-2b45-4596-a2bb-5bb5b306474e",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "ended_at": "2026-09-09T07:35:00.703Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 9000,
+      "claimedAt": "2026-09-09T07:35:01.159Z",
+      "runner": {
+        "attempt": 1,
+        "runnerNonce": "73b54b3d-f4a1-4928-9841-af5bcdadcc7a",
+        "phase": "terminal",
+        "deadlineAt": "2026-09-09T07:35:10.785Z"
+      },
+      "lastOutcomeCode": "completed",
+      "completedAt": "2026-09-09T07:35:01.318Z"
+    },
+    "callback": {
+      "class": "best-effort",
+      "phase": "deferred-best-effort",
+      "status": "completed",
+      "attempts": 1,
+      "idempotencyKey": "d068ede2655bf89e0c0950e087d0603d7dcf45538e94f20a654d08c6f4841895",
+      "payload": {
+        "transcriptPath": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+        "cwd": "/Users/notabhk/grid-mobile",
+        "reason": "other",
+        "input": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "transcript_path": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+          "cwd": "/Users/notabhk/grid-mobile",
+          "scratchpad_dir": "/private/tmp/claude-501/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95/scratchpad",
+          "prompt_id": "b4acbe96-2b45-4596-a2bb-5bb5b306474e",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "ended_at": "2026-09-09T07:35:00.703Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 2000,
+      "claimedAt": "2026-09-09T07:35:01.338Z",
+      "runner": {
+        "attempt": 1,
+        "runnerNonce": "7c777de2-f6dc-483a-9f7f-818f8a4484cb",
+        "phase": "terminal",
+        "deadlineAt": "2026-09-09T07:35:10.785Z"
+      },
+      "lastOutcomeCode": "completed",
+      "completedAt": "2026-09-09T07:35:01.486Z"
+    },
+    "notification": {
+      "class": "best-effort",
+      "phase": "deferred-best-effort",
+      "status": "completed",
+      "attempts": 1,
+      "idempotencyKey": "89c0438ff63097ce04beb60efb87292ff68a7af350a0ee331f3de9dbf42d62fc",
+      "payload": {
+        "transcriptPath": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+        "cwd": "/Users/notabhk/grid-mobile",
+        "reason": "other",
+        "input": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "transcript_path": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+          "cwd": "/Users/notabhk/grid-mobile",
+          "scratchpad_dir": "/private/tmp/claude-501/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95/scratchpad",
+          "prompt_id": "b4acbe96-2b45-4596-a2bb-5bb5b306474e",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "ended_at": "2026-09-09T07:35:00.703Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 2000,
+      "claimedAt": "2026-09-09T07:35:01.517Z",
+      "runner": {
+        "attempt": 1,
+        "runnerNonce": "0bbbcb0a-cad1-4bfd-99a7-b94be8d7deb7",
+        "phase": "terminal",
+        "deadlineAt": "2026-09-09T07:35:10.785Z"
+      },
+      "lastOutcomeCode": "completed",
+      "completedAt": "2026-09-09T07:35:01.681Z"
+    },
+    "openclaw": {
+      "class": "best-effort",
+      "phase": "deferred-best-effort",
+      "status": "completed",
+      "attempts": 1,
+      "idempotencyKey": "31fe8f6e1cf204e27006de511df257326fdd98655122ca437013e8779ffc735b",
+      "payload": {
+        "transcriptPath": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+        "cwd": "/Users/notabhk/grid-mobile",
+        "reason": "other",
+        "input": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "transcript_path": "/Users/notabhk/.claude/projects/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95.jsonl",
+          "cwd": "/Users/notabhk/grid-mobile",
+          "scratchpad_dir": "/private/tmp/claude-501/-Users-notabhk-grid-mobile/7bc514e3-e418-4cc0-bb9e-47101d06ba95/scratchpad",
+          "prompt_id": "b4acbe96-2b45-4596-a2bb-5bb5b306474e",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "7bc514e3-e418-4cc0-bb9e-47101d06ba95",
+          "ended_at": "2026-09-09T07:35:00.703Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 2000,
+      "claimedAt": "2026-09-09T07:35:01.709Z",
+      "runner": {
+        "attempt": 1,
+        "runnerNonce": "e9ca364f-7bab-4efe-ba77-1f389e67fb7c",
+        "phase": "terminal",
+        "deadlineAt": "2026-09-09T07:35:10.785Z"
+      },
+      "lastOutcomeCode": "completed",
+      "completedAt": "2026-09-09T07:35:01.863Z"
+    }
+  },
+  "owner": null,
+  "phase": "complete",
+  "completion": {
+    "completedAt": "2026-09-09T07:35:01.891Z",
+    "terminalDigest": "8577df3da40baeeb62e9d3b0b2f686a11830ea39504223a743d2a2b1eb284b22",
+    "terminalRevision": 40
+  }
+}

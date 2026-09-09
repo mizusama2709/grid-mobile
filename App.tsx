@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import {
   useFonts as useSpaceGrotesk,
@@ -13,6 +14,8 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { SignupScreen } from './src/screens/SignupScreen';
+import { ExploreScreen } from './src/screens/ExploreScreen';
+import { auth } from './src/lib/firebase';
 import { colors } from './src/theme/colors';
 
 export default function App() {
@@ -23,8 +26,15 @@ export default function App() {
     IBMPlexMono_600SemiBold,
   });
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  if (!headingLoaded || !monoLoaded) {
+  useEffect(() => onAuthStateChanged(auth, (u) => {
+    setUser(u);
+    setAuthChecked(true);
+  }), []);
+
+  if (!headingLoaded || !monoLoaded || !authChecked) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.ink} />
@@ -34,7 +44,9 @@ export default function App() {
 
   return (
     <View style={{ flex: 1 }}>
-      {mode === 'login' ? (
+      {user ? (
+        <ExploreScreen />
+      ) : mode === 'login' ? (
         <LoginScreen onSwitchToSignup={() => setMode('signup')} />
       ) : (
         <SignupScreen onSwitchToLogin={() => setMode('login')} />
