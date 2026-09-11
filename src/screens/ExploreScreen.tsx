@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GridLogo } from '../components/GridLogo';
 import { colors, fonts } from '../theme/colors';
 
@@ -26,9 +26,13 @@ const LISTINGS: Listing[] = [
   { id: 8, category: 'MUA', title: 'Bridal & HD Makeup', provider: 'Neha S.', location: 'Jubilee Hills', price: '₹5,500', rating: '5.0' },
 ];
 
-const NAV_ITEMS = ['Explore', 'Bookings', 'Saved', 'Profile'];
+const NAV_ITEMS = ['Explore', 'Bookings', 'Messages', 'Profile'];
 
-export function ExploreScreen() {
+type Props = {
+  onNavigate?: (tab: 'explore' | 'messages') => void;
+};
+
+export function ExploreScreen({ onNavigate }: Props) {
   const [activeCat, setActiveCat] = useState('All');
   const [saved, setSaved] = useState<Record<number, boolean>>({});
 
@@ -38,7 +42,7 @@ export function ExploreScreen() {
   );
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <GridLogo size={18} />
@@ -115,14 +119,18 @@ export function ExploreScreen() {
 
       <View style={styles.navBar}>
         {NAV_ITEMS.map((label, i) => (
-          <View key={label} style={styles.navItem}>
+          <TouchableOpacity
+            key={label}
+            style={styles.navItem}
+            onPress={() => label === 'Messages' && onNavigate?.('messages')}
+          >
             <Text style={[styles.navText, i === 0 && styles.navTextActive]}>
               {label.toUpperCase()}
             </Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -15,6 +15,7 @@ import {
 import { LoginScreen } from './src/screens/LoginScreen';
 import { SignupScreen } from './src/screens/SignupScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
+import { MessagesScreen } from './src/screens/MessagesScreen';
 import { auth } from './src/lib/firebase';
 import { colors } from './src/theme/colors';
 
@@ -26,6 +27,7 @@ export default function App() {
     IBMPlexMono_600SemiBold,
   });
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [tab, setTab] = useState<'explore' | 'messages'>('explore');
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -45,7 +47,11 @@ export default function App() {
   return (
     <View style={{ flex: 1 }}>
       {user ? (
-        <ExploreScreen />
+        tab === 'explore' ? (
+          <ExploreScreen onNavigate={setTab} />
+        ) : (
+          <MessagesScreen onNavigate={setTab} />
+        )
       ) : mode === 'login' ? (
         <LoginScreen onSwitchToSignup={() => setMode('signup')} />
       ) : (
