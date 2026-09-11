@@ -33,7 +33,7 @@ const CONVERSATION: Message[] = [
 const NAV_ITEMS = ['Explore', 'Bookings', 'Messages', 'Profile'];
 
 type Props = {
-  onNavigate?: (tab: 'explore' | 'messages') => void;
+  onNavigate?: (tab: 'explore' | 'bookings' | 'messages' | 'profile') => void;
 };
 
 export function MessagesScreen({ onNavigate }: Props) {
@@ -102,7 +102,7 @@ export function MessagesScreen({ onNavigate }: Props) {
           <TouchableOpacity
             key={label}
             style={styles.navItem}
-            onPress={() => label === 'Explore' && onNavigate?.('explore')}
+            onPress={() => label !== 'Messages' && onNavigate?.(label.toLowerCase() as any)}
           >
             <Text style={[styles.navText, label === 'Messages' && styles.navTextActive]}>
               {label.toUpperCase()}

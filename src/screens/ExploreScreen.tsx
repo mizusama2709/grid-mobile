@@ -29,7 +29,7 @@ const LISTINGS: Listing[] = [
 const NAV_ITEMS = ['Explore', 'Bookings', 'Messages', 'Profile'];
 
 type Props = {
-  onNavigate?: (tab: 'explore' | 'messages') => void;
+  onNavigate?: (tab: 'explore' | 'bookings' | 'messages' | 'profile') => void;
 };
 
 export function ExploreScreen({ onNavigate }: Props) {
@@ -122,7 +122,7 @@ export function ExploreScreen({ onNavigate }: Props) {
           <TouchableOpacity
             key={label}
             style={styles.navItem}
-            onPress={() => label === 'Messages' && onNavigate?.('messages')}
+            onPress={() => label !== 'Explore' && onNavigate?.(label.toLowerCase() as any)}
           >
             <Text style={[styles.navText, i === 0 && styles.navTextActive]}>
               {label.toUpperCase()}

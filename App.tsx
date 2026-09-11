@@ -16,6 +16,8 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { SignupScreen } from './src/screens/SignupScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
 import { MessagesScreen } from './src/screens/MessagesScreen';
+import { BookingsScreen } from './src/screens/BookingsScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
 import { auth } from './src/lib/firebase';
 import { colors } from './src/theme/colors';
 
@@ -27,7 +29,7 @@ export default function App() {
     IBMPlexMono_600SemiBold,
   });
   const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [tab, setTab] = useState<'explore' | 'messages'>('explore');
+  const [tab, setTab] = useState<'explore' | 'bookings' | 'messages' | 'profile'>('explore');
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -49,8 +51,12 @@ export default function App() {
       {user ? (
         tab === 'explore' ? (
           <ExploreScreen onNavigate={setTab} />
-        ) : (
+        ) : tab === 'bookings' ? (
+          <BookingsScreen onNavigate={setTab} />
+        ) : tab === 'messages' ? (
           <MessagesScreen onNavigate={setTab} />
+        ) : (
+          <ProfileScreen onNavigate={setTab} />
         )
       ) : mode === 'login' ? (
         <LoginScreen onSwitchToSignup={() => setMode('signup')} />
