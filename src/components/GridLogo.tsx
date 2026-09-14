@@ -1,40 +1,40 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '../theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fonts, gradients } from '../theme/colors';
 
-export function GridLogo({ size = 20 }: { size?: number }) {
-  const cell = size / 2;
+export function GridLogo({ size = 20, showWord = true }: { size?: number; showWord?: boolean }) {
+  const mark = size * 1.7;
+  const cell = mark * 0.32;
   return (
     <View style={styles.row}>
-      <View style={[styles.mark, { width: cell * 3 + 3, height: cell * 3 + 3 }]}>
-        {Array.from({ length: 9 }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.cell,
-              { width: cell, height: cell },
-              i === 4 ? styles.center : styles.border,
-            ]}
-          />
-        ))}
-      </View>
-      <Text style={[styles.word, { fontSize: size }]}>GRID</Text>
+      <LinearGradient
+        colors={gradients.brand}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.mark, { width: mark, height: mark, borderRadius: mark * 0.32 }]}
+      >
+        <View style={[styles.dots, { gap: cell * 0.2 }]}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View key={i} style={[styles.dot, { width: cell, height: cell }]} />
+          ))}
+        </View>
+      </LinearGradient>
+      {showWord && <Text style={[styles.word, { fontSize: size }]}>Grid</Text>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   mark: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cell: {},
-  border: { borderWidth: 1.5, borderColor: colors.ink },
-  center: { backgroundColor: colors.violet },
+  dots: { flexDirection: 'row', flexWrap: 'wrap' },
+  dot: { backgroundColor: 'rgba(8,8,10,0.85)', borderRadius: 1.5 },
   word: {
-    fontFamily: fonts.headingBold,
-    letterSpacing: -0.3,
-    color: colors.ink,
+    fontFamily: fonts.semiBold,
+    letterSpacing: -0.4,
+    color: colors.textPrimary,
   },
 });

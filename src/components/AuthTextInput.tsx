@@ -11,55 +11,54 @@ export function AuthTextInput({ label, isPassword, secureTextEntry, ...rest }: P
   const [hidden, setHidden] = useState(!!isPassword);
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.label}>[ {label} ]</Text>
-      <View style={styles.box}>
+    <View style={styles.box}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.label}>{label}</Text>
         <TextInput
           style={styles.input}
-          placeholderTextColor={colors.grey}
+          placeholderTextColor={colors.chipTextAlt}
           secureTextEntry={isPassword ? hidden : secureTextEntry}
           autoCapitalize="none"
           {...rest}
         />
-        {isPassword && (
-          <TouchableOpacity onPress={() => setHidden((v) => !v)}>
-            <Text style={styles.show}>{hidden ? 'SHOW' : 'HIDE'}</Text>
-          </TouchableOpacity>
-        )}
       </View>
+      {isPassword && (
+        <TouchableOpacity onPress={() => setHidden((v) => !v)}>
+          <Text style={styles.show}>{hidden ? 'Show' : 'Hide'}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: 16 },
-  label: {
-    fontFamily: fonts.mono,
-    fontSize: 8.5,
-    color: colors.violet,
-    marginBottom: 7,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
   box: {
-    borderWidth: 1.5,
-    borderColor: colors.ink,
-    height: 44,
+    backgroundColor: colors.surfaceInput,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    marginBottom: 12,
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  label: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginBottom: 3,
   },
   input: {
-    flex: 1,
-    fontFamily: fonts.mono,
-    fontSize: 12,
-    color: colors.ink,
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    color: colors.textPrimary,
     padding: 0,
   },
   show: {
-    fontFamily: fonts.mono,
-    fontSize: 8.5,
-    color: colors.grey,
-    letterSpacing: 0.5,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.teal,
   },
 });

@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import {
-  useFonts as useSpaceGrotesk,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
-import {
-  useFonts as useIBMPlexMono,
-  IBMPlexMono_400Regular,
-  IBMPlexMono_500Medium,
-  IBMPlexMono_600SemiBold,
-} from '@expo-google-fonts/ibm-plex-mono';
+  useFonts,
+  InstrumentSans_400Regular,
+  InstrumentSans_500Medium,
+  InstrumentSans_600SemiBold,
+  InstrumentSans_700Bold,
+} from '@expo-google-fonts/instrument-sans';
+import { SplashSequence } from './src/components/SplashSequence';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { SignupScreen } from './src/screens/SignupScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
@@ -22,56 +22,86 @@ import { auth } from './src/lib/firebase';
 import { colors } from './src/theme/colors';
 
 export default function App() {
-  const [headingLoaded] = useSpaceGrotesk({ SpaceGrotesk_700Bold });
-  const [monoLoaded] = useIBMPlexMono({
-    IBMPlexMono_400Regular,
-    IBMPlexMono_500Medium,
-    IBMPlexMono_600SemiBold,
+  const [fontsLoaded] = useFonts({
+    InstrumentSans_400Regular,
+    InstrumentSans_500Medium,
+    InstrumentSans_600SemiBold,
+    InstrumentSans_700Bold,
   });
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [tab, setTab] = useState<'explore' | 'bookings' | 'messages' | 'profile'>('explore');
+  const [pendingThreadId, setPendingThreadId] = useState<number | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+  const screenOpacity = useSharedValue(0);
+  const screenScale = useSharedValue(1.03);
+  const screenInStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ scale: screenScale.value }],
+  }));
+
+  const handleSplashDone = () => {
+    setSplashDone(true);
+    screenOpacity.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.ease) });
+    screenScale.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.ease) });
+  };
+
+  const navigate = (nextTab: typeof tab, opts?: { threadId?: number }) => {
+    setTab(nextTab);
+    if (opts?.threadId) setPendingThreadId(opts.threadId);
+  };
 
   useEffect(() => onAuthStateChanged(auth, (u) => {
     setUser(u);
     setAuthChecked(true);
   }), []);
 
-  if (!headingLoaded || !monoLoaded || !authChecked) {
+  if (!fontsLoaded || !authChecked) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.ink} />
-      </View>
+      <SafeAreaProvider>
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.teal} />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      {user ? (
-        tab === 'explore' ? (
-          <ExploreScreen onNavigate={setTab} />
-        ) : tab === 'bookings' ? (
-          <BookingsScreen onNavigate={setTab} />
-        ) : tab === 'messages' ? (
-          <MessagesScreen onNavigate={setTab} />
-        ) : (
-          <ProfileScreen onNavigate={setTab} />
-        )
-      ) : mode === 'login' ? (
-        <LoginScreen onSwitchToSignup={() => setMode('signup')} />
-      ) : (
-        <SignupScreen onSwitchToLogin={() => setMode('login')} />
-      )}
-      <StatusBar style="dark" />
-    </View>
+    <SafeAreaProvider>
+      <View style={{ flex: 1 }}>
+        <Animated.View style={[{ flex: 1 }, screenInStyle]}>
+          {user ? (
+            tab === 'explore' ? (
+              <ExploreScreen onNavigate={navigate} />
+            ) : tab === 'bookings' ? (
+              <BookingsScreen onNavigate={navigate} />
+            ) : tab === 'messages' ? (
+              <MessagesScreen
+                onNavigate={navigate}
+                initialThreadId={pendingThreadId}
+                onThreadConsumed={() => setPendingThreadId(null)}
+              />
+            ) : (
+              <ProfileScreen onNavigate={navigate} />
+            )
+          ) : mode === 'login' ? (
+            <LoginScreen onSwitchToSignup={() => setMode('signup')} />
+          ) : (
+            <SignupScreen onSwitchToLogin={() => setMode('login')} />
+          )}
+        </Animated.View>
+        {!splashDone && <SplashSequence onDone={handleSplashDone} />}
+        <StatusBar style="light" />
+      </View>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },

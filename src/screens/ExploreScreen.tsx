@@ -1,17 +1,15 @@
 import { useMemo, useState } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { GridLogo } from '../components/GridLogo';
-import { colors, fonts } from '../theme/colors';
-
-type Listing = {
-  id: number;
-  category: string;
-  title: string;
-  provider: string;
-  location: string;
-  price: string;
-  rating: string;
-};
+import { ScalePressable } from '../components/ScalePressable';
+import { AmbientBackground } from '../components/AmbientBackground';
+import { BottomNav, type NavTab } from '../components/BottomNav';
+import { ListingCard, type Listing } from '../components/ListingCard';
+import { ListingDetail } from './ListingDetail';
+import { colors, fonts, gradients } from '../theme/colors';
 
 const CATEGORIES = ['All', 'Photographer', 'Studio', 'Model', 'MUA', 'Videographer'];
 
@@ -26,54 +24,88 @@ const LISTINGS: Listing[] = [
   { id: 8, category: 'MUA', title: 'Bridal & HD Makeup', provider: 'Neha S.', location: 'Jubilee Hills', price: '₹5,500', rating: '5.0' },
 ];
 
-const NAV_ITEMS = ['Explore', 'Bookings', 'Messages', 'Profile'];
-
 type Props = {
-  onNavigate?: (tab: 'explore' | 'bookings' | 'messages' | 'profile') => void;
+  onNavigate?: (tab: NavTab, opts?: { threadId?: number }) => void;
 };
 
 export function ExploreScreen({ onNavigate }: Props) {
   const [activeCat, setActiveCat] = useState('All');
   const [saved, setSaved] = useState<Record<number, boolean>>({});
+  const [detailId, setDetailId] = useState<number | null>(null);
 
   const filtered = useMemo(
     () => (activeCat === 'All' ? LISTINGS : LISTINGS.filter((l) => l.category === activeCat)),
     [activeCat]
   );
+  const detail = LISTINGS.find((l) => l.id === detailId) ?? null;
+
+  if (detail) {
+    return (
+      <ListingDetail
+        listing={detail}
+        saved={!!saved[detail.id]}
+        onToggleSave={() => setSaved((s) => ({ ...s, [detail.id]: !s[detail.id] }))}
+        onClose={() => setDetailId(null)}
+        onMessage={() => {
+          setDetailId(null);
+          onNavigate?.('messages', { threadId: 1 });
+        }}
+      />
+    );
+  }
+
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
+    <View style={styles.screen}>
+      <AmbientBackground />
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <View style={styles.headerRow}>
-          <GridLogo size={18} />
+          <GridLogo size={17} />
           <View style={styles.bellButton}>
-            <Text style={styles.bellIcon}>🔔</Text>
+            <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+              <Path d="M6 10a6 6 0 0112 0v4l1.5 3h-15L6 14v-4z" stroke="#C9C9D1" strokeWidth={1.8} strokeLinejoin="round" />
+            </Svg>
+            <View style={styles.bellDot} />
           </View>
         </View>
 
         <Text style={styles.heading}>Explore</Text>
-        <Text style={styles.tagline}>book &amp; get booked // hyderabad</Text>
+        <Text style={styles.tagline}>Photographers, studios and crew near you.</Text>
 
-        <Text style={styles.searchLabel}>[ SEARCH ]</Text>
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <Text style={styles.searchPlaceholder}>search photographers, studios, MUAs…</Text>
+          <View style={{ flex: 1.1, minWidth: 0 }}>
+            <Text style={styles.searchLabel}>Who</Text>
+            <Text style={styles.searchValue}>Any crew</Text>
+          </View>
+          <View style={styles.searchDivider} />
+          <View style={{ flex: 1, minWidth: 0, paddingLeft: 13 }}>
+            <Text style={styles.searchLabel}>When</Text>
+            <Text style={styles.searchValue}>Any date</Text>
+          </View>
+          <ScalePressable scaleTo={0.88}>
+            <LinearGradient colors={gradients.accentButton} style={styles.searchButton}>
+              <Svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke={colors.onAccent} strokeWidth={2.1} strokeLinecap="round">
+                <Circle cx={11} cy={11} r={7} />
+                <Path d="M20 20l-3.6-3.6" />
+              </Svg>
+            </LinearGradient>
+          </ScalePressable>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catRow}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
           {CATEGORIES.map((cat) => {
             const active = cat === activeCat;
             return (
-              <TouchableOpacity key={cat} onPress={() => setActiveCat(cat)} style={styles.catItem}>
-                <Text style={[styles.catText, active && styles.catTextActive]}>
-                  {cat.toUpperCase()}
-                </Text>
-                <View style={[styles.catUnderline, active && styles.catUnderlineActive]} />
-              </TouchableOpacity>
+              <ScalePressable
+                key={cat}
+                onPress={() => setActiveCat(cat)}
+                scaleTo={0.92}
+                haptic={false}
+                style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{cat}</Text>
+              </ScalePressable>
             );
           })}
         </ScrollView>
@@ -84,183 +116,71 @@ export function ExploreScreen({ onNavigate }: Props) {
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
         columnWrapperStyle={styles.gridRow}
-        contentContainerStyle={styles.gridContent}
+        contentContainerStyle={[styles.gridContent, { paddingBottom: insets.bottom + 118 }]}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.imagePlaceholderText}>{item.title}</Text>
-              <View style={styles.categoryTag}>
-                <Text style={styles.categoryTagText}>{item.category.toUpperCase()}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={() => setSaved((s) => ({ ...s, [item.id]: !s[item.id] }))}
-              >
-                <Text style={[styles.saveIcon, saved[item.id] && styles.saveIconActive]}>
-                  {saved[item.id] ? '★' : '☆'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-              <Text style={styles.cardMeta}>
-                {item.provider} · {item.location}
-              </Text>
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardPrice}>{item.price}</Text>
-                <Text style={styles.cardRating}>★ {item.rating}</Text>
-              </View>
-            </View>
-          </View>
+          <ListingCard
+            listing={item}
+            saved={!!saved[item.id]}
+            onOpen={() => setDetailId(item.id)}
+            onToggleSave={() => setSaved((s) => ({ ...s, [item.id]: !s[item.id] }))}
+          />
         )}
       />
 
-      <View style={styles.navBar}>
-        {NAV_ITEMS.map((label, i) => (
-          <TouchableOpacity
-            key={label}
-            style={styles.navItem}
-            onPress={() => label !== 'Explore' && onNavigate?.(label.toLowerCase() as any)}
-          >
-            <Text style={[styles.navText, i === 0 && styles.navTextActive]}>
-              {label.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </SafeAreaView>
+      <BottomNav active="explore" onNavigate={(tab) => onNavigate?.(tab)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.paper },
-  header: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 0 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  header: { paddingHorizontal: 22, paddingTop: 4 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
   bellButton: {
-    width: 34,
-    height: 34,
-    borderWidth: 1.5,
-    borderColor: colors.ink,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bellIcon: { fontSize: 14 },
-  heading: {
-    fontFamily: fonts.headingBold,
-    fontSize: 26,
-    letterSpacing: -0.4,
-    color: colors.ink,
-    marginBottom: 4,
+  bellDot: {
+    position: 'absolute',
+    top: 8,
+    right: 9,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.orange,
+    borderWidth: 1.5,
+    borderColor: colors.bg,
   },
-  tagline: {
-    fontFamily: fonts.mono,
-    fontSize: 9.5,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 18,
-  },
-  searchLabel: {
-    fontFamily: fonts.monoMedium,
-    fontSize: 8.5,
-    color: colors.violet,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 7,
-  },
+  heading: { fontFamily: fonts.semiBold, fontSize: 30, letterSpacing: -1, lineHeight: 35, color: colors.textPrimary, marginBottom: 6 },
+  tagline: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, marginBottom: 18 },
   searchBar: {
-    borderWidth: 1.5,
-    borderColor: colors.ink,
-    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    marginBottom: 14,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    paddingLeft: 18,
+    paddingRight: 6,
+    marginBottom: 16,
   },
-  searchIcon: { fontSize: 12 },
-  searchPlaceholder: { fontFamily: fonts.mono, fontSize: 12, color: colors.grey },
-  catRow: {
-    gap: 18,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20,19,16,0.15)',
-  },
-  catItem: { alignItems: 'center' },
-  catText: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 0.3,
-    color: colors.grey,
-    marginBottom: 8,
-  },
-  catTextActive: { fontFamily: fonts.monoSemiBold, color: colors.ink },
-  catUnderline: { height: 2, width: '100%', backgroundColor: 'transparent' },
-  catUnderlineActive: { backgroundColor: colors.violet },
-  gridContent: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 100 },
+  searchLabel: { fontFamily: fonts.semiBold, fontSize: 10.5, letterSpacing: 0.3, color: colors.textTertiary },
+  searchValue: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textPrimary },
+  searchDivider: { width: 1, height: 26, backgroundColor: colors.borderStrong },
+  searchButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  catRow: { gap: 8, paddingBottom: 14 },
+  chip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 18 },
+  chipActive: { backgroundColor: colors.teal },
+  chipInactive: { backgroundColor: colors.surfaceStrong, borderWidth: 1, borderColor: colors.border },
+  chipText: { fontFamily: fonts.medium, fontSize: 13, color: colors.chipText },
+  chipTextActive: { color: colors.onAccent },
+  gridContent: { paddingHorizontal: 22, paddingTop: 2, paddingBottom: 120 },
   gridRow: { gap: 14, marginBottom: 14 },
-  card: { flex: 1, borderWidth: 1, borderColor: 'rgba(20,19,16,0.15)', backgroundColor: '#fff' },
-  imagePlaceholder: {
-    width: '100%',
-    aspectRatio: 4 / 5,
-    backgroundColor: colors.paperDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 8,
-  },
-  imagePlaceholderText: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    color: colors.grey,
-    textAlign: 'center',
-  },
-  categoryTag: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(237,234,226,0.92)',
-    borderWidth: 1,
-    borderColor: colors.ink,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  categoryTagText: { fontFamily: fonts.mono, fontSize: 7.5, letterSpacing: 0.4, color: colors.ink },
-  saveButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    backgroundColor: 'rgba(237,234,226,0.92)',
-    borderWidth: 1,
-    borderColor: colors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveIcon: { fontSize: 12, color: colors.ink },
-  saveIconActive: { color: colors.violet },
-  cardBody: { padding: 9, paddingTop: 8, paddingBottom: 10, gap: 4 },
-  cardTitle: { fontFamily: fonts.headingBold, fontSize: 12, letterSpacing: -0.2, color: colors.ink, lineHeight: 15 },
-  cardMeta: { fontFamily: fonts.mono, fontSize: 8.5, color: colors.grey },
-  cardFooter: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 2 },
-  cardPrice: { fontFamily: fonts.monoMedium, fontSize: 11, color: colors.ink },
-  cardRating: { fontFamily: fonts.mono, fontSize: 8.5, color: colors.violet },
-  navBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 78,
-    backgroundColor: colors.paper,
-    borderTopWidth: 1.5,
-    borderTopColor: colors.ink,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: 10,
-  },
-  navItem: { flex: 1, alignItems: 'center', gap: 5 },
-  navText: { fontFamily: fonts.mono, fontSize: 8, letterSpacing: 0.3, color: colors.grey },
-  navTextActive: { color: colors.violet },
 });

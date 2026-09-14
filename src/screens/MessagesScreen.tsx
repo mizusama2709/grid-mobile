@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { colors, fonts } from '../theme/colors';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AmbientBackground } from '../components/AmbientBackground';
+import { BottomNav, type NavTab } from '../components/BottomNav';
+import { colors, fonts, gradientAt, gradients } from '../theme/colors';
 
 type Thread = {
   id: number;
@@ -30,63 +34,81 @@ const CONVERSATION: Message[] = [
   { from: 'them', text: 'Sure, 4pm works great for me!' },
 ];
 
-const NAV_ITEMS = ['Explore', 'Bookings', 'Messages', 'Profile'];
-
 type Props = {
-  onNavigate?: (tab: 'explore' | 'bookings' | 'messages' | 'profile') => void;
+  onNavigate?: (tab: NavTab, opts?: { threadId?: number }) => void;
+  initialThreadId?: number | null;
+  onThreadConsumed?: () => void;
 };
 
-export function MessagesScreen({ onNavigate }: Props) {
+export function MessagesScreen({ onNavigate, initialThreadId, onThreadConsumed }: Props) {
+  const insets = useSafeAreaInsets();
   const [activeId, setActiveId] = useState<number | null>(null);
   const active = THREADS.find((t) => t.id === activeId) ?? null;
 
+  useEffect(() => {
+    if (initialThreadId) {
+      setActiveId(initialThreadId);
+      onThreadConsumed?.();
+    }
+  }, [initialThreadId, onThreadConsumed]);
+
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
+      <AmbientBackground />
       {active ? (
         <>
-          <View style={styles.threadHeader}>
-            <TouchableOpacity onPress={() => setActiveId(null)} hitSlop={10}>
-              <Text style={styles.backIcon}>←</Text>
+          <View style={[styles.threadHeader, { paddingTop: insets.top + 4 }]}>
+            <TouchableOpacity onPress={() => setActiveId(null)} hitSlop={10} style={styles.backButton}>
+              <Text style={styles.backIcon}>‹</Text>
             </TouchableOpacity>
-            <View style={styles.avatarSmall} />
-            <Text style={styles.threadName}>{active.name}</Text>
+            <LinearGradient colors={gradientAt(active.id)} style={styles.avatarSmall} />
+            <View>
+              <Text style={styles.threadName}>{active.name}</Text>
+              <Text style={styles.activeNow}>Active now</Text>
+            </View>
           </View>
 
-          <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.messagesContent}>
             {CONVERSATION.map((m, i) => (
               <View key={i} style={[styles.messageRow, m.from === 'me' && styles.messageRowMe]}>
-                <View style={[styles.bubble, m.from === 'me' ? styles.bubbleMe : styles.bubbleThem]}>
-                  <Text style={[styles.bubbleText, m.from === 'me' && styles.bubbleTextMe]}>{m.text}</Text>
-                </View>
+                {m.from === 'me' ? (
+                  <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.bubble, styles.bubbleMe]}>
+                    <Text style={[styles.bubbleText, styles.bubbleTextMe]}>{m.text}</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={[styles.bubble, styles.bubbleThem]}>
+                    <Text style={styles.bubbleText}>{m.text}</Text>
+                  </View>
+                )}
               </View>
             ))}
           </ScrollView>
 
-          <View style={styles.composer}>
+          <View style={[styles.composer, { paddingBottom: insets.bottom + 12 }]}>
             <View style={styles.composerInput}>
-              <Text style={styles.composerPlaceholder}>Type a message…</Text>
+              <Text style={styles.composerPlaceholder}>Message</Text>
             </View>
-            <View style={styles.sendButton}>
-              <Text style={styles.sendIcon}>➤</Text>
-            </View>
+            <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.sendButton}>
+              <Text style={styles.sendIcon}>↑</Text>
+            </LinearGradient>
           </View>
         </>
       ) : (
         <>
-          <View style={styles.listHeader}>
+          <View style={[styles.listHeader, { paddingTop: insets.top + 4 }]}>
             <Text style={styles.heading}>Messages</Text>
           </View>
 
-          <ScrollView>
+          <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 118 }}>
             {THREADS.map((t) => (
               <TouchableOpacity key={t.id} onPress={() => setActiveId(t.id)} style={styles.threadRow}>
-                <View style={styles.avatar} />
+                <LinearGradient colors={gradientAt(t.id)} style={styles.avatar} />
                 <View style={styles.threadInfo}>
                   <View style={styles.threadTopRow}>
                     <Text style={styles.threadRowName}>{t.name}</Text>
                     <Text style={styles.threadTime}>{t.time}</Text>
                   </View>
-                  <Text style={styles.threadPreview} numberOfLines={1}>
+                  <Text style={[styles.threadPreview, { color: t.unread ? colors.chipTextAlt : colors.textSecondary }]} numberOfLines={1}>
                     {t.preview}
                   </Text>
                 </View>
@@ -94,109 +116,90 @@ export function MessagesScreen({ onNavigate }: Props) {
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          <BottomNav active="messages" onNavigate={(tab) => onNavigate?.(tab)} />
         </>
       )}
-
-      <View style={styles.navBar}>
-        {NAV_ITEMS.map((label) => (
-          <TouchableOpacity
-            key={label}
-            style={styles.navItem}
-            onPress={() => label !== 'Messages' && onNavigate?.(label.toLowerCase() as any)}
-          >
-            <Text style={[styles.navText, label === 'Messages' && styles.navTextActive]}>
-              {label.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.paper },
-  listHeader: { padding: 22, paddingBottom: 14 },
-  heading: {
-    fontFamily: fonts.headingBold,
-    fontSize: 26,
-    letterSpacing: -0.4,
-    color: colors.ink,
-  },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  listHeader: { paddingHorizontal: 22, paddingTop: 4, paddingBottom: 16 },
+  heading: { fontFamily: fonts.semiBold, fontSize: 30, letterSpacing: -1, color: colors.textPrimary },
   threadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 11,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20,19,16,0.08)',
+    gap: 12,
+    padding: 12,
+    marginHorizontal: 14,
+    borderRadius: 20,
   },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.violet },
-  avatarSmall: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.violet },
+  avatar: { width: 46, height: 46, borderRadius: 23 },
+  avatarSmall: { width: 36, height: 36, borderRadius: 18 },
   threadInfo: { flex: 1, minWidth: 0 },
-  threadTopRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  threadRowName: { fontFamily: fonts.monoSemiBold, fontSize: 11.5, color: colors.ink },
-  threadTime: { fontFamily: fonts.mono, fontSize: 8.5, color: colors.grey },
-  threadPreview: { fontFamily: fonts.mono, fontSize: 10, color: colors.grey, marginTop: 2 },
-  unreadDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.violet },
+  threadTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
+  threadRowName: { fontFamily: fonts.semiBold, fontSize: 14.5, letterSpacing: -0.3, color: colors.textPrimary },
+  threadTime: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.textTertiary },
+  threadPreview: { fontFamily: fonts.regular, fontSize: 13, marginTop: 3 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal, flexShrink: 0 },
   threadHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20,19,16,0.15)',
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  backIcon: { fontSize: 16, color: colors.ink },
-  threadName: { fontFamily: fonts.monoSemiBold, fontSize: 12.5, color: colors.ink },
-  messages: { flex: 1 },
-  messagesContent: { padding: 14, paddingHorizontal: 16, gap: 10 },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: { fontSize: 15, color: colors.textPrimary },
+  threadName: { fontFamily: fonts.semiBold, fontSize: 15, letterSpacing: -0.3, color: colors.textPrimary },
+  activeNow: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.teal },
+  messagesContent: { padding: 18, paddingHorizontal: 20, gap: 10 },
   messageRow: { flexDirection: 'row', justifyContent: 'flex-start' },
   messageRowMe: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '75%', paddingVertical: 9, paddingHorizontal: 12 },
-  bubbleThem: { backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(20,19,16,0.15)' },
-  bubbleMe: { backgroundColor: colors.violet },
-  bubbleText: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 15, color: colors.ink },
-  bubbleTextMe: { color: colors.paper },
+  bubble: { maxWidth: '76%', paddingVertical: 11, paddingHorizontal: 15 },
+  bubbleThem: {
+    borderRadius: 20,
+    borderBottomLeftRadius: 6,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  bubbleMe: { borderRadius: 20, borderBottomRightRadius: 6 },
+  bubbleText: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 19, color: colors.textPrimary },
+  bubbleTextMe: { color: colors.onAccent },
   composer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(20,19,16,0.15)',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 30,
     flexDirection: 'row',
-    gap: 8,
+    gap: 9,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   composerInput: {
     flex: 1,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surfaceStrong,
     borderWidth: 1,
-    borderColor: colors.ink,
-    height: 38,
+    borderColor: colors.border,
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
-  composerPlaceholder: { fontFamily: fonts.mono, fontSize: 11, color: colors.grey },
-  sendButton: {
-    width: 38,
-    height: 38,
-    backgroundColor: colors.violet,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendIcon: { fontSize: 13, color: colors.paper },
-  navBar: {
-    height: 78,
-    backgroundColor: colors.paper,
-    borderTopWidth: 1.5,
-    borderTopColor: colors.ink,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: 10,
-  },
-  navItem: { flex: 1, alignItems: 'center', gap: 5 },
-  navText: { fontFamily: fonts.mono, fontSize: 8, letterSpacing: 0.3, color: colors.grey },
-  navTextActive: { color: colors.violet },
+  composerPlaceholder: { fontFamily: fonts.regular, fontSize: 14.5, color: colors.textTertiary },
+  sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  sendIcon: { fontSize: 15, color: colors.onAccent },
 });

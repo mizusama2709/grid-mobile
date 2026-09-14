@@ -1,5 +1,9 @@
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { colors, fonts } from '../theme/colors';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AmbientBackground } from '../components/AmbientBackground';
+import { BottomNav, type NavTab } from '../components/BottomNav';
+import { colors, fonts, gradientAt, gradients } from '../theme/colors';
 
 type Listing = { title: string; price: string };
 type Review = { author: string; rating: string; text: string };
@@ -15,53 +19,50 @@ const REVIEWS: Review[] = [
   { author: 'Vivek N.', rating: '4.8', text: 'Great communication and understood the brand look immediately.' },
 ];
 
+const STATS = [
+  { value: '37', label: 'Bookings' },
+  { value: '4.6', label: 'Rating' },
+  { value: '3', label: 'Listings' },
+];
+
 const SETTINGS_LINKS = ['Account settings', 'Payment methods', 'Notifications', 'Help & support'];
 
-const NAV_ITEMS = ['Explore', 'Bookings', 'Messages', 'Profile'] as const;
-
 type Props = {
-  onNavigate?: (tab: 'explore' | 'bookings' | 'messages' | 'profile') => void;
+  onNavigate?: (tab: NavTab, opts?: { threadId?: number }) => void;
 };
 
 export function ProfileScreen({ onNavigate }: Props) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <View style={styles.avatar} />
+    <View style={styles.screen}>
+      <AmbientBackground />
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 128 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 22 }]}>
+          <LinearGradient colors={gradients.avatar} start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }} style={styles.avatar} />
           <Text style={styles.name}>Meher Prasad</Text>
-          <Text style={styles.role}>PHOTOGRAPHER · HYDERABAD</Text>
+          <Text style={styles.role}>Photographer · Hyderabad</Text>
           <Text style={styles.bio}>
             Product &amp; catalog photography. Shooting for D2C brands across Hyderabad since 2021.
           </Text>
           <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>37</Text>
-              <Text style={styles.statLabel}>BOOKINGS</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>4.6</Text>
-              <Text style={styles.statLabel}>RATING</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>3</Text>
-              <Text style={styles.statLabel}>LISTINGS</Text>
-            </View>
+            {STATS.map((st) => (
+              <View key={st.label} style={styles.stat}>
+                <Text style={styles.statNumber}>{st.value}</Text>
+                <Text style={styles.statLabel}>{st.label}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
         <View style={styles.body}>
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>My Listings</Text>
-            <View style={{ gap: 8 }}>
-              {MY_LISTINGS.map((l) => (
+            <Text style={styles.sectionLabel}>My listings</Text>
+            <View style={{ gap: 9 }}>
+              {MY_LISTINGS.map((l, i) => (
                 <View key={l.title} style={styles.listingRow}>
-                  <View style={styles.listingThumb}>
-                    <Text style={styles.listingThumbText}>{l.title}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
+                  <LinearGradient colors={gradientAt(i + 5)} style={styles.listingThumb} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.listingTitle}>{l.title}</Text>
                     <Text style={styles.listingPrice}>{l.price}</Text>
                   </View>
@@ -72,13 +73,16 @@ export function ProfileScreen({ onNavigate }: Props) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Reviews Received</Text>
-            <View style={{ gap: 12 }}>
+            <Text style={styles.sectionLabel}>Reviews received</Text>
+            <View style={{ gap: 10 }}>
               {REVIEWS.map((r) => (
                 <View key={r.author} style={styles.reviewCard}>
                   <View style={styles.reviewTop}>
                     <Text style={styles.reviewAuthor}>{r.author}</Text>
-                    <Text style={styles.reviewRating}>★ {r.rating}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <Text style={styles.star}>★</Text>
+                      <Text style={styles.reviewRating}>{r.rating}</Text>
+                    </View>
                   </View>
                   <Text style={styles.reviewText}>{r.text}</Text>
                 </View>
@@ -100,102 +104,74 @@ export function ProfileScreen({ onNavigate }: Props) {
         </View>
       </ScrollView>
 
-      <View style={styles.navBar}>
-        {NAV_ITEMS.map((label) => (
-          <TouchableOpacity
-            key={label}
-            style={styles.navItem}
-            onPress={() => label !== 'Profile' && onNavigate?.(label.toLowerCase() as any)}
-          >
-            <Text style={[styles.navText, label === 'Profile' && styles.navTextActive]}>
-              {label.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </SafeAreaView>
+      <BottomNav active="profile" onNavigate={(tab) => onNavigate?.(tab)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.paper },
-  scrollContent: { paddingBottom: 100 },
-  header: {
-    paddingTop: 26,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20,19,16,0.15)',
-  },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.violet },
-  name: { fontFamily: fonts.headingBold, fontSize: 18, color: colors.ink },
-  role: { fontFamily: fonts.mono, fontSize: 9.5, color: colors.grey, letterSpacing: 0.3 },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  scrollContent: { paddingBottom: 130 },
+  header: { paddingTop: 58, paddingBottom: 24, paddingHorizontal: 22, alignItems: 'center', gap: 10 },
+  avatar: { width: 88, height: 88, borderRadius: 44 },
+  name: { fontFamily: fonts.semiBold, fontSize: 21, letterSpacing: -0.6, color: colors.textPrimary, marginTop: 4 },
+  role: { fontFamily: fonts.regular, fontSize: 12.5, color: colors.textSecondary },
   bio: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    color: colors.textMuted,
-    lineHeight: 16,
+    fontFamily: fonts.regular,
+    fontSize: 13.5,
+    color: colors.chipTextAlt,
+    lineHeight: 20,
     textAlign: 'center',
-    maxWidth: 280,
-    marginTop: 6,
+    maxWidth: 290,
+    marginTop: 4,
   },
-  statsRow: { flexDirection: 'row', gap: 10, marginTop: 4, alignItems: 'center' },
-  stat: { alignItems: 'center', paddingHorizontal: 6 },
-  statNumber: { fontFamily: fonts.monoSemiBold, fontSize: 14, color: colors.ink },
-  statLabel: { fontFamily: fonts.mono, fontSize: 7.5, color: colors.grey, marginTop: 2 },
-  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(20,19,16,0.15)' },
-  body: { padding: 20, gap: 20 },
-  section: { gap: 10 },
-  sectionLabel: {
-    fontFamily: fonts.monoMedium,
-    fontSize: 8.5,
-    color: colors.violet,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  statsRow: { flexDirection: 'row', gap: 10, width: '100%', marginTop: 16 },
+  stat: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
   },
+  statNumber: { fontFamily: fonts.semiBold, fontSize: 19, letterSpacing: -0.5, color: colors.textPrimary },
+  statLabel: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary, marginTop: 3 },
+  body: { paddingHorizontal: 22, gap: 26 },
+  section: { gap: 12 },
+  sectionLabel: { fontFamily: fonts.semiBold, fontSize: 15, letterSpacing: -0.3, color: colors.textPrimary },
   listingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
+    padding: 11,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(20,19,16,0.15)',
-    padding: 10,
+    borderColor: colors.border,
   },
-  listingThumb: { width: 44, height: 44, backgroundColor: colors.paperDim, alignItems: 'center', justifyContent: 'center' },
-  listingThumbText: { fontFamily: fonts.mono, fontSize: 5.5, color: colors.grey, textAlign: 'center', padding: 2 },
-  listingTitle: { fontFamily: fonts.monoSemiBold, fontSize: 11.5, color: colors.ink },
-  listingPrice: { fontFamily: fonts.mono, fontSize: 9, color: colors.grey, marginTop: 2 },
-  chevron: { fontSize: 14, color: colors.grey },
-  reviewCard: { borderWidth: 1, borderColor: 'rgba(20,19,16,0.12)', padding: 12 },
-  reviewTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  reviewAuthor: { fontFamily: fonts.monoSemiBold, fontSize: 11, color: colors.ink },
-  reviewRating: { fontFamily: fonts.mono, fontSize: 10, color: colors.violet },
-  reviewText: { fontFamily: fonts.mono, fontSize: 11, color: colors.textMuted, lineHeight: 16 },
-  settingsBox: { borderWidth: 1, borderColor: 'rgba(20,19,16,0.15)' },
+  listingThumb: { width: 46, height: 46, borderRadius: 14 },
+  listingTitle: { fontFamily: fonts.medium, fontSize: 14, letterSpacing: -0.2, color: colors.textPrimary },
+  listingPrice: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 3 },
+  chevron: { fontSize: 16, color: colors.textMuted },
+  star: { fontSize: 10, color: colors.gold },
+  reviewCard: { padding: 14, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  reviewTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 },
+  reviewAuthor: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary },
+  reviewRating: { fontFamily: fonts.regular, fontSize: 12, color: colors.chipTextAlt },
+  reviewText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: '#A0A0A9' },
+  settingsBox: { borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 13,
-    paddingHorizontal: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20,19,16,0.1)',
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   settingsRowLast: { borderBottomWidth: 0 },
-  settingsLabel: { fontFamily: fonts.mono, fontSize: 11.5, color: colors.ink },
-  logoutLabel: { fontFamily: fonts.mono, fontSize: 11.5, color: '#B04A3F' },
-  navBar: {
-    height: 78,
-    backgroundColor: colors.paper,
-    borderTopWidth: 1.5,
-    borderTopColor: colors.ink,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: 10,
-  },
-  navItem: { flex: 1, alignItems: 'center', gap: 5 },
-  navText: { fontFamily: fonts.mono, fontSize: 8, letterSpacing: 0.3, color: colors.grey },
-  navTextActive: { color: colors.violet },
+  settingsLabel: { fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
+  logoutLabel: { fontFamily: fonts.regular, fontSize: 14, color: colors.orange },
 });
