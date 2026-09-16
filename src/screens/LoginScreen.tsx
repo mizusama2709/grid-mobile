@@ -17,12 +17,27 @@ import { GridLogo } from '../components/GridLogo';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { colors, fonts, gradients } from '../theme/colors';
 import { signIn } from '../lib/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 export function LoginScreen({ onSwitchToSignup }: { onSwitchToSignup: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert('Enter your email', 'Type your email above, then tap "Forgot password?" again.');
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      Alert.alert('Check your inbox', `We sent a password reset link to ${email.trim()}.`);
+    } catch (err: any) {
+      Alert.alert('Could not send reset email', err?.message ?? 'Try again.');
+    }
+  };
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -69,23 +84,21 @@ export function LoginScreen({ onSwitchToSignup }: { onSwitchToSignup: () => void
             isPassword
           />
 
-          <TouchableOpacity style={styles.forgotWrap}>
+          <TouchableOpacity style={styles.forgotWrap} onPress={handleForgotPassword}>
             <Text style={styles.forgot}>Forgot password?</Text>
           </TouchableOpacity>
 
           <AuthButton label="Sign in" onPress={handleSignIn} loading={loading} />
 
-          <TouchableOpacity activeOpacity={0.85}>
-            <View style={styles.googleButton}>
-              <LinearGradient
-                colors={gradients.google}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.googleDot}
-              />
-              <Text style={styles.googleLabel}>Continue with Google</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={[styles.googleButton, styles.googleButtonDisabled]}>
+            <LinearGradient
+              colors={gradients.google}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.googleDot}
+            />
+            <Text style={styles.googleLabel}>Continue with Google (coming soon)</Text>
+          </View>
 
           <TouchableOpacity onPress={onSwitchToSignup} style={styles.switchWrap}>
             <Text style={styles.switchText}>
@@ -131,6 +144,7 @@ const styles = StyleSheet.create({
     gap: 9,
     marginBottom: 28,
   },
+  googleButtonDisabled: { opacity: 0.45 },
   googleDot: { width: 17, height: 17, borderRadius: 8.5 },
   googleLabel: { fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
   switchWrap: { alignItems: 'center' },

@@ -1,5 +1,13 @@
+import { Platform } from 'react-native';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, initializeAuth } from 'firebase/auth';
+// @firebase/auth's exports map lists "types" before the "react-native"
+// condition, so tsc always resolves the universal (non-RN) .d.ts here even
+// though Metro correctly bundles the RN build at runtime — upstream types
+// gap, not a resolution mistake on our end.
+// @ts-expect-error - getReactNativePersistence exists at runtime (dist/rn) but isn't in the resolved .d.ts
+import { getReactNativePersistence } from '@firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -13,11 +21,12 @@ const firebaseConfig = {
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// ponytail: firebase v12's `firebase/auth` export map has no react-native
-// condition, so getReactNativePersistence isn't reachable through it — auth
-// state won't survive an app restart yet. Fix when wiring the login screen:
-// either pin firebase to a version where this worked, or import the RN
-// persistence build straight from `@firebase/auth`.
-export const auth = getAuth(app);
+// firebase/auth's own export map has no react-native condition, but
+// @firebase/auth's does (-> dist/rn), so persistence must be imported from
+// there directly. Native gets AsyncStorage-backed persistence; web keeps
+// plain getAuth (browser persistence is automatic).
+export const auth = Platform.OS === 'web'
+  ? getAuth(app)
+  : initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
 
 export const db = getFirestore(app);

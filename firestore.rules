@@ -13,15 +13,16 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(uid);
       allow create: if isOwner(uid) &&
         request.resource.data.keys().hasOnly(['email', 'role', 'name', 'phone', 'created_at', 'bio', 'categories', 'location', 'portfolio_links', 'avatar_url', 'display_name']) &&
         request.resource.data.role in ['client', 'freelancer'] &&
         request.resource.data.email == request.auth.token.email;
       allow update: if isOwner(uid) &&
         request.resource.data.keys().hasOnly(['email', 'role', 'name', 'phone', 'created_at', 'bio', 'categories', 'location', 'portfolio_links', 'avatar_url', 'display_name']) &&
-        request.resource.data.role in ['client', 'freelancer'] &&
-        request.resource.data.email == request.auth.token.email;
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.created_at == resource.data.created_at;
       allow delete: if false;
     }
 
@@ -37,12 +38,16 @@ service cloud.firestore {
         allow read: if isSignedIn() &&
           (get(/databases/$(database)/documents/jobs/$(jobId)).data.client_id == request.auth.uid ||
            resource.data.freelancer_id == request.auth.uid);
-        allow create: if isSignedIn() && role() == 'freelancer' && request.resource.data.freelancer_id == request.auth.uid &&
+        allow create: if isSignedIn() && role() == 'freelancer' &&
+          request.resource.data.freelancer_id == request.auth.uid &&
+          request.resource.data.job_id == jobId &&
+          request.resource.data.status == 'pending' &&
           request.resource.data.keys().hasOnly(['job_id', 'freelancer_id', 'message', 'status', 'created_at']);
         allow update: if isSignedIn() &&
           get(/databases/$(database)/documents/jobs/$(jobId)).data.client_id == request.auth.uid &&
-          request.resource.data.freelancer_id == resource.data.freelancer_id &&
-          request.resource.data.job_id == resource.data.job_id;
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status in ['accepted', 'rejected'];
         allow delete: if false;
       }
     }
@@ -59,12 +64,16 @@ service cloud.firestore {
         allow read: if isSignedIn() &&
           (get(/databases/$(database)/documents/gigs/$(gigId)).data.freelancer_id == request.auth.uid ||
            resource.data.client_id == request.auth.uid);
-        allow create: if isSignedIn() && role() == 'client' && request.resource.data.client_id == request.auth.uid &&
+        allow create: if isSignedIn() && role() == 'client' &&
+          request.resource.data.client_id == request.auth.uid &&
+          request.resource.data.gig_id == gigId &&
+          request.resource.data.status == 'requested' &&
           request.resource.data.keys().hasOnly(['gig_id', 'client_id', 'message', 'status', 'created_at']);
         allow update: if isSignedIn() &&
           get(/databases/$(database)/documents/gigs/$(gigId)).data.freelancer_id == request.auth.uid &&
-          request.resource.data.client_id == resource.data.client_id &&
-          request.resource.data.gig_id == resource.data.gig_id;
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+          resource.data.status == 'requested' &&
+          request.resource.data.status in ['confirmed', 'declined'];
         allow delete: if false;
       }
     }

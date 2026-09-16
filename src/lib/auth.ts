@@ -20,13 +20,18 @@ export async function signUp(params: {
   const { email, password, name, role, location } = params;
   const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
 
-  await setDoc(doc(db, 'users', cred.user.uid), {
-    email: email.trim(),
-    name,
-    role,
-    location,
-    created_at: serverTimestamp(),
-  });
+  try {
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      email: email.trim(),
+      name,
+      role,
+      location,
+      created_at: serverTimestamp(),
+    });
+  } catch (err) {
+    await cred.user.delete().catch(() => {});
+    throw err;
+  }
 
   return cred.user;
 }

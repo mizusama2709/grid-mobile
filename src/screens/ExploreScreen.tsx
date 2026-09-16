@@ -38,6 +38,7 @@ export function ExploreScreen({ onNavigate }: Props) {
     [activeCat]
   );
   const detail = LISTINGS.find((l) => l.id === detailId) ?? null;
+  const insets = useSafeAreaInsets();
 
   if (detail) {
     return (
@@ -53,8 +54,6 @@ export function ExploreScreen({ onNavigate }: Props) {
       />
     );
   }
-
-  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.screen}>

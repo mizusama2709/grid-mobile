@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged, type User } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -18,7 +19,7 @@ import { ExploreScreen } from './src/screens/ExploreScreen';
 import { MessagesScreen } from './src/screens/MessagesScreen';
 import { BookingsScreen } from './src/screens/BookingsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
-import { auth } from './src/lib/firebase';
+import { auth, db } from './src/lib/firebase';
 import { colors } from './src/theme/colors';
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
   const [pendingThreadId, setPendingThreadId] = useState<number | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [profileReady, setProfileReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const screenOpacity = useSharedValue(0);
   const screenScale = useSharedValue(1.03);
@@ -57,7 +59,17 @@ export default function App() {
     setAuthChecked(true);
   }), []);
 
-  if (!fontsLoaded || !authChecked) {
+  useEffect(() => {
+    if (!user) {
+      setProfileReady(false);
+      return;
+    }
+    return onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      setProfileReady(snap.exists());
+    });
+  }, [user]);
+
+  if (!fontsLoaded || !authChecked || (user && !profileReady)) {
     return (
       <SafeAreaProvider>
         <View style={styles.loading}>

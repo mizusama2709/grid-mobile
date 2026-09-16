@@ -1,9 +1,11 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { signOut } from 'firebase/auth';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { BottomNav, type NavTab } from '../components/BottomNav';
 import { colors, fonts, gradientAt, gradients } from '../theme/colors';
+import { auth } from '../lib/firebase';
 
 type Listing = { title: string; price: string };
 type Review = { author: string; rating: string; text: string };
@@ -97,7 +99,7 @@ export function ProfileScreen({ onNavigate }: Props) {
                 <Text style={styles.chevron}>›</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={[styles.settingsRow, styles.settingsRowLast]}>
+            <TouchableOpacity style={[styles.settingsRow, styles.settingsRowLast]} onPress={() => signOut(auth)}>
               <Text style={styles.logoutLabel}>Log out</Text>
             </TouchableOpacity>
           </View>
