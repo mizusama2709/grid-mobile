@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import {
@@ -35,6 +35,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
+  const [profileStuck, setProfileStuck] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const screenOpacity = useSharedValue(0);
   const screenScale = useSharedValue(1.03);
@@ -62,11 +63,25 @@ export default function App() {
   useEffect(() => {
     if (!user) {
       setProfileReady(false);
+      setProfileStuck(false);
       return;
     }
-    return onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      setProfileReady(snap.exists());
-    });
+    const timeout = setTimeout(() => setProfileStuck(true), 8000);
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', user.uid),
+      (snap) => {
+        setProfileReady(snap.exists());
+        if (snap.exists()) {
+          clearTimeout(timeout);
+          setProfileStuck(false);
+        }
+      },
+      () => setProfileStuck(true),
+    );
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [user]);
 
   if (!fontsLoaded || !authChecked || (user && !profileReady)) {
@@ -74,6 +89,14 @@ export default function App() {
       <SafeAreaProvider>
         <View style={styles.loading}>
           <ActivityIndicator color={colors.teal} />
+          {user && profileStuck && (
+            <View style={styles.stuckBox}>
+              <Text style={styles.stuckText}>Taking longer than expected to load your profile.</Text>
+              <TouchableOpacity onPress={() => signOut(auth)} style={styles.stuckButton}>
+                <Text style={styles.stuckButtonText}>Sign out and try again</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </SafeAreaProvider>
     );
@@ -116,5 +139,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 16,
   },
+  stuckBox: { alignItems: 'center', gap: 12, paddingHorizontal: 32 },
+  stuckText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
+  stuckButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  stuckButtonText: { color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
 });

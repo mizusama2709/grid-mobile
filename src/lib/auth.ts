@@ -29,7 +29,14 @@ export async function signUp(params: {
       created_at: serverTimestamp(),
     });
   } catch (err) {
-    await cred.user.delete().catch(() => {});
+    try {
+      await cred.user.delete();
+    } catch (deleteErr) {
+      throw new Error(
+        `Account setup failed and could not be automatically rolled back. Contact support with this email: ${email.trim()}. ` +
+          `(profile error: ${(err as any)?.message ?? err}; rollback error: ${(deleteErr as any)?.message ?? deleteErr})`,
+      );
+    }
     throw err;
   }
 

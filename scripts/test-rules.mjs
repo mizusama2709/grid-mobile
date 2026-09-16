@@ -235,10 +235,19 @@ await check('gig owner can confirm a requested booking', async () => {
   );
 });
 
+await seed(async (db) => {
+  await setDoc(doc(db, 'gigs/gig-1/bookings/booking-self-confirm'), {
+    gig_id: 'gig-1',
+    client_id: clientUid,
+    status: 'requested',
+    created_at: serverTimestamp(),
+  });
+});
+
 await check('client cannot self-confirm their own booking', async () => {
   const db = testEnv.authenticatedContext(clientUid, { email: 'client@example.com' }).firestore();
   await assertFails(
-    updateDoc(doc(db, 'gigs/gig-1/bookings/booking-4'), { status: 'confirmed' })
+    updateDoc(doc(db, 'gigs/gig-1/bookings/booking-self-confirm'), { status: 'confirmed' })
   );
 });
 
