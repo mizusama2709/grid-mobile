@@ -1,9 +1,24 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { colors, fonts, gradientAt, gradients } from '../theme/colors';
 import type { Listing } from '../components/ListingCard';
 import { ScalePressable } from '../components/ScalePressable';
+import { BottomSheet } from '../components/BottomSheet';
+import { requestBooking, SlotUnavailableError } from '../lib/bookings';
+
+type BookingStep = 'closed' | 'datetime' | 'confirm' | 'submitting' | 'success' | 'unavailable' | 'failure';
+
+const DATES = [
+  { day: 'Thu', date: 17 },
+  { day: 'Fri', date: 18 },
+  { day: 'Sat', date: 19 },
+  { day: 'Sun', date: 20 },
+  { day: 'Mon', date: 21 },
+];
+const TIMES = ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM', '6:00 PM'];
 
 const DETAIL_META: Record<string, string> = {
   Photographer: '142 shoots · On Grid since 2021',
@@ -39,6 +54,31 @@ export function ListingDetail({ listing, saved, onToggleSave, onClose, onMessage
   const hostMeta = DETAIL_META[listing.category] || 'On Grid since 2022';
   const reviewCount = 40 + listing.id * 7;
   const insets = useSafeAreaInsets();
+
+  const [bookingStep, setBookingStep] = useState<BookingStep>('closed');
+  const [dateIdx, setDateIdx] = useState(1);
+  const [timeIdx, setTimeIdx] = useState(3);
+  const [note, setNote] = useState('');
+
+  const dateLabel = `${DATES[dateIdx].day}, Sep ${DATES[dateIdx].date}`;
+  const timeLabel = TIMES[timeIdx];
+
+  const submitBooking = async () => {
+    setBookingStep('submitting');
+    try {
+      await requestBooking({ listingId: listing.id, provider: listing.provider, dateLabel, timeLabel, note });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setBookingStep('success');
+    } catch (err) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setBookingStep(err instanceof SlotUnavailableError ? 'unavailable' : 'failure');
+    }
+  };
+
+  const closeBooking = () => {
+    setBookingStep('closed');
+    setNote('');
+  };
 
   return (
     <View style={styles.screen}>
@@ -123,12 +163,152 @@ export function ListingDetail({ listing, saved, onToggleSave, onClose, onMessage
           <Text style={styles.bookPrice}>{listing.price}</Text>
           <Text style={styles.bookDate}>Sep 18, 4:00 PM</Text>
         </View>
-        <ScalePressable style={{ flex: 1, maxWidth: 170 }} scaleTo={0.96}>
+        <ScalePressable style={{ flex: 1, maxWidth: 170 }} scaleTo={0.96} onPress={() => setBookingStep('datetime')}>
           <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bookButton}>
             <Text style={styles.bookButtonText}>Request booking</Text>
           </LinearGradient>
         </ScalePressable>
       </View>
+
+      <BottomSheet
+        visible={bookingStep !== 'closed'}
+        onClose={closeBooking}
+        dismissOnBackdrop={bookingStep !== 'submitting'}
+      >
+        {bookingStep === 'datetime' && (
+          <>
+            <Text style={styles.sheetTitle}>Choose a date &amp; time</Text>
+            <Text style={styles.sheetSubtitle}>{listing.provider}'s availability for the next 7 days.</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateRow}>
+              {DATES.map((d, i) => (
+                <ScalePressable
+                  key={d.date}
+                  onPress={() => setDateIdx(i)}
+                  scaleTo={0.94}
+                  haptic={false}
+                  style={[styles.dateChip, i === dateIdx && styles.chipActive]}
+                >
+                  <Text style={[styles.dateChipDay, i === dateIdx && styles.chipTextActive]}>{d.day}</Text>
+                  <Text style={[styles.dateChipNum, i === dateIdx && styles.chipTextActive]}>{d.date}</Text>
+                </ScalePressable>
+              ))}
+            </ScrollView>
+            <View style={styles.timeRow}>
+              {TIMES.map((t, i) => (
+                <ScalePressable
+                  key={t}
+                  onPress={() => setTimeIdx(i)}
+                  scaleTo={0.94}
+                  haptic={false}
+                  style={[styles.timeChip, i === timeIdx && styles.chipActive]}
+                >
+                  <Text style={[styles.timeChipText, i === timeIdx && styles.chipTextActive]}>{t}</Text>
+                </ScalePressable>
+              ))}
+            </View>
+            <ScalePressable style={styles.sheetPrimaryButton} onPress={() => setBookingStep('confirm')} scaleTo={0.97} haptic={false}>
+              <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+              <Text style={styles.sheetPrimaryButtonText}>Continue</Text>
+            </ScalePressable>
+          </>
+        )}
+
+        {(bookingStep === 'confirm' || bookingStep === 'submitting') && (
+          <>
+            <Text style={styles.sheetTitle}>Request booking</Text>
+            <View style={styles.summaryRow}>
+              <LinearGradient colors={gradientAt(listing.id - 1)} style={styles.summaryThumb} />
+              <View>
+                <Text style={styles.summaryTitle}>{listing.title}</Text>
+                <Text style={styles.summaryProvider}>{listing.provider}</Text>
+              </View>
+            </View>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLabel}>Date &amp; time</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={styles.summaryValue}>{dateLabel} · {timeLabel}</Text>
+                <TouchableOpacity onPress={() => setBookingStep('datetime')} disabled={bookingStep === 'submitting'}>
+                  <Text style={styles.changeLink}>Change</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={[styles.summaryLine, { marginBottom: 14 }]}>
+              <Text style={styles.summaryLabel}>Price</Text>
+              <Text style={styles.summaryPrice}>{listing.price}</Text>
+            </View>
+            <TextInput
+              style={styles.noteInput}
+              value={note}
+              onChangeText={setNote}
+              placeholder={`Add a note for ${listing.provider} (optional)`}
+              placeholderTextColor={colors.textTertiary}
+              editable={bookingStep !== 'submitting'}
+              multiline
+            />
+            <Text style={styles.respondsNote}>{listing.provider} usually responds within an hour.</Text>
+            <ScalePressable
+              style={[styles.sheetPrimaryButton, bookingStep === 'submitting' && styles.sheetButtonDisabled]}
+              onPress={submitBooking}
+              disabled={bookingStep === 'submitting'}
+              scaleTo={0.97}
+            >
+              {bookingStep !== 'submitting' && (
+                <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+              )}
+              {bookingStep === 'submitting' ? (
+                <ActivityIndicator color={colors.onAccent} />
+              ) : (
+                <Text style={styles.sheetPrimaryButtonText}>Send request</Text>
+              )}
+            </ScalePressable>
+          </>
+        )}
+
+        {bookingStep === 'success' && (
+          <View style={{ alignItems: 'center' }}>
+            <View style={styles.outcomeIcon}>
+              <Text style={styles.outcomeIconText}>✓</Text>
+            </View>
+            <Text style={styles.sheetTitle}>Request sent</Text>
+            <Text style={[styles.sheetSubtitle, { textAlign: 'center' }]}>
+              {listing.provider} will confirm shortly. You'll see this in Bookings as Pending.
+            </Text>
+            <TouchableOpacity onPress={closeBooking}>
+              <Text style={styles.resendText}>View in Bookings</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {bookingStep === 'unavailable' && (
+          <View style={{ alignItems: 'center' }}>
+            <View style={[styles.outcomeIcon, styles.outcomeIconWarning]}>
+              <Text style={[styles.outcomeIconText, styles.outcomeIconTextWarning]}>!</Text>
+            </View>
+            <Text style={styles.sheetTitle}>Slot no longer available</Text>
+            <Text style={[styles.sheetSubtitle, { textAlign: 'center' }]}>
+              {listing.provider} just got booked for this time. Pick another slot.
+            </Text>
+            <TouchableOpacity onPress={() => setBookingStep('datetime')}>
+              <Text style={styles.resendText}>Choose another time</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {bookingStep === 'failure' && (
+          <View style={{ alignItems: 'center' }}>
+            <View style={[styles.outcomeIcon, styles.outcomeIconError]}>
+              <Text style={[styles.outcomeIconText, styles.outcomeIconTextError]}>!</Text>
+            </View>
+            <Text style={styles.sheetTitle}>Couldn't send your request</Text>
+            <Text style={[styles.sheetSubtitle, { textAlign: 'center' }]}>
+              Something went wrong on our end. Your booking wasn't sent.
+            </Text>
+            <TouchableOpacity onPress={submitBooking}>
+              <Text style={styles.resendText}>Try again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </BottomSheet>
     </View>
   );
 }
@@ -216,4 +396,99 @@ const styles = StyleSheet.create({
   bookDate: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2, textDecorationLine: 'underline' },
   bookButton: { height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
   bookButtonText: { fontFamily: fonts.semiBold, fontSize: 15.5, letterSpacing: -0.2, color: colors.onAccent },
+
+  sheetTitle: { fontFamily: fonts.semiBold, fontSize: 20, letterSpacing: -0.4, color: colors.textPrimary, marginBottom: 6 },
+  sheetSubtitle: { fontFamily: fonts.regular, fontSize: 12.5, color: colors.textSecondary, marginBottom: 16 },
+  dateRow: { marginBottom: 16 },
+  dateChip: {
+    width: 48,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginRight: 8,
+  },
+  dateChipDay: { fontFamily: fonts.regular, fontSize: 10.5, color: colors.textTertiary },
+  dateChipNum: { fontFamily: fonts.semiBold, fontSize: 15, color: colors.textPrimary },
+  timeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
+  timeChip: {
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  timeChipText: { fontFamily: fonts.regular, fontSize: 13, color: colors.chipText },
+  chipActive: { backgroundColor: colors.teal, borderColor: colors.teal },
+  chipTextActive: { color: colors.onAccent, fontFamily: fonts.medium },
+  sheetPrimaryButton: {
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  sheetButtonDisabled: { opacity: 0.6 },
+  sheetPrimaryButtonText: { fontFamily: fonts.semiBold, fontSize: 16, color: colors.onAccent },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 13,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 14,
+  },
+  summaryThumb: { width: 52, height: 52, borderRadius: 14 },
+  summaryTitle: { fontFamily: fonts.medium, fontSize: 14, color: colors.textPrimary },
+  summaryProvider: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  summaryLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  summaryLabel: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
+  summaryValue: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textPrimary },
+  summaryPrice: { fontFamily: fonts.semiBold, fontSize: 13.5, color: colors.textPrimary },
+  changeLink: { fontFamily: fonts.medium, fontSize: 12, color: colors.teal },
+  noteInput: {
+    backgroundColor: colors.surfaceInput,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 16,
+    padding: 13,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textPrimary,
+    minHeight: 44,
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  respondsNote: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginBottom: 16 },
+  outcomeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.teal,
+  },
+  outcomeIconWarning: { backgroundColor: 'rgba(224,176,113,0.14)' },
+  outcomeIconError: { backgroundColor: 'rgba(224,118,79,0.14)' },
+  outcomeIconText: { fontSize: 19, fontWeight: '700', color: colors.onAccent },
+  outcomeIconTextWarning: { color: colors.gold },
+  outcomeIconTextError: { color: colors.orange },
+  resendText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.teal, marginTop: 4 },
 });

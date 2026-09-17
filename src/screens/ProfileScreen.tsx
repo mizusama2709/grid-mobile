@@ -1,11 +1,14 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { signOut } from 'firebase/auth';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { BottomNav, type NavTab } from '../components/BottomNav';
+import { ConfirmSheet } from '../components/ConfirmSheet';
+import { ScalePressable } from '../components/ScalePressable';
 import { colors, fonts, gradientAt, gradients } from '../theme/colors';
-import { auth } from '../lib/firebase';
+import { logOut } from '../lib/auth';
 
 type Listing = { title: string; price: string };
 type Review = { author: string; rating: string; text: string };
@@ -35,9 +38,25 @@ type Props = {
 
 export function ProfileScreen({ onNavigate }: Props) {
   const insets = useSafeAreaInsets();
+  const [logoutVisible, setLogoutVisible] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const opacity = useSharedValue(1);
+  const scale = useSharedValue(1);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));
+
+  const handleLogOut = async () => {
+    setSigningOut(true);
+    // Reverse of App.tsx's post-splash reveal (260ms fade+scale) before the
+    // real signOut() flips App.tsx's user state and unmounts this screen.
+    opacity.value = withTiming(0, { duration: 260, easing: Easing.in(Easing.ease) });
+    scale.value = withTiming(1.03, { duration: 260, easing: Easing.in(Easing.ease) });
+    await new Promise((r) => setTimeout(r, 260));
+    await logOut();
+  };
 
   return (
-    <View style={styles.screen}>
+    <Animated.View style={[styles.screen, fadeStyle]}>
       <AmbientBackground />
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 128 }]}>
         <View style={[styles.header, { paddingTop: insets.top + 22 }]}>
@@ -93,21 +112,44 @@ export function ProfileScreen({ onNavigate }: Props) {
           </View>
 
           <View style={styles.settingsBox}>
-            {SETTINGS_LINKS.map((label) => (
-              <TouchableOpacity key={label} style={styles.settingsRow}>
+            {SETTINGS_LINKS.map((label, i) => (
+              <ScalePressable
+                key={label}
+                style={[styles.settingsRow, i === SETTINGS_LINKS.length - 1 && styles.settingsRowLast]}
+                scaleTo={0.97}
+                haptic={false}
+              >
                 <Text style={styles.settingsLabel}>{label}</Text>
                 <Text style={styles.chevron}>›</Text>
-              </TouchableOpacity>
+              </ScalePressable>
             ))}
-            <TouchableOpacity style={[styles.settingsRow, styles.settingsRowLast]} onPress={() => signOut(auth)}>
+            <ScalePressable
+              style={[styles.settingsRow, styles.settingsRowLast]}
+              onPress={() => setLogoutVisible(true)}
+              scaleTo={0.97}
+              haptic
+            >
               <Text style={styles.logoutLabel}>Log out</Text>
-            </TouchableOpacity>
+            </ScalePressable>
           </View>
         </View>
       </ScrollView>
 
       <BottomNav active="profile" onNavigate={(tab) => onNavigate?.(tab)} />
-    </View>
+
+      <ConfirmSheet
+        visible={logoutVisible}
+        onClose={() => setLogoutVisible(false)}
+        title="Log out?"
+        subtitle="You'll need to sign in again to access your account."
+        primaryLabel="Log out"
+        onPrimary={handleLogOut}
+        primaryLoading={signingOut}
+        secondaryLabel="Cancel"
+        onSecondary={() => setLogoutVisible(false)}
+        destructive
+      />
+    </Animated.View>
   );
 }
 

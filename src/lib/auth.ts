@@ -1,6 +1,8 @@
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signOut,
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -8,6 +10,14 @@ import { UserRole } from '../types/models';
 
 export async function signIn(email: string, password: string) {
   await signInWithEmailAndPassword(auth, email.trim(), password);
+}
+
+export async function resetPassword(email: string) {
+  await sendPasswordResetEmail(auth, email.trim());
+}
+
+export async function logOut() {
+  await signOut(auth);
 }
 
 export async function signUp(params: {

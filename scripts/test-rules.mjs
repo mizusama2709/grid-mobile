@@ -251,6 +251,65 @@ await check('client cannot self-confirm their own booking', async () => {
   );
 });
 
+// --- listing_bookings (Explore/Listing Detail flow, unrelated to gigs) ---
+await check('listing_booking create rejects forged client_id', async () => {
+  const db = testEnv.authenticatedContext(clientUid, { email: 'client@example.com' }).firestore();
+  await assertFails(
+    setDoc(doc(db, 'listing_bookings/lb-1'), {
+      listing_id: 1,
+      provider: 'Kavya R.',
+      date_label: 'Fri, Sep 18',
+      time_label: '4:00 PM',
+      note: '',
+      client_id: otherUid,
+      status: 'requested',
+      created_at: serverTimestamp(),
+    })
+  );
+});
+
+await check('listing_booking create rejects forged initial status', async () => {
+  const db = testEnv.authenticatedContext(clientUid, { email: 'client@example.com' }).firestore();
+  await assertFails(
+    setDoc(doc(db, 'listing_bookings/lb-2'), {
+      listing_id: 1,
+      provider: 'Kavya R.',
+      date_label: 'Fri, Sep 18',
+      time_label: '4:00 PM',
+      note: '',
+      client_id: clientUid,
+      status: 'confirmed',
+      created_at: serverTimestamp(),
+    })
+  );
+});
+
+await check('listing_booking create succeeds with correct owner/status', async () => {
+  const db = testEnv.authenticatedContext(clientUid, { email: 'client@example.com' }).firestore();
+  await assertSucceeds(
+    setDoc(doc(db, 'listing_bookings/lb-ok'), {
+      listing_id: 1,
+      provider: 'Kavya R.',
+      date_label: 'Fri, Sep 18',
+      time_label: '4:00 PM',
+      note: '',
+      client_id: clientUid,
+      status: 'requested',
+      created_at: serverTimestamp(),
+    })
+  );
+});
+
+await check('another signed-in user can read a listing_booking (needed for the slot-conflict check)', async () => {
+  const db = testEnv.authenticatedContext(freelancerUid, { email: 'freelancer@example.com' }).firestore();
+  await assertSucceeds(getDoc(doc(db, 'listing_bookings/lb-ok')));
+});
+
+await check('listing_booking cannot be updated by anyone', async () => {
+  const db = testEnv.authenticatedContext(clientUid, { email: 'client@example.com' }).firestore();
+  await assertFails(updateDoc(doc(db, 'listing_bookings/lb-ok'), { status: 'confirmed' }));
+});
+
 await testEnv.cleanup();
 
 console.log(`\n${passed} check(s) passed.`);

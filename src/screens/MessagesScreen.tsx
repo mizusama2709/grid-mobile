@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { BottomNav, type NavTab } from '../components/BottomNav';
+import { EmptyState } from '../components/EmptyState';
+import { ScalePressable } from '../components/ScalePressable';
 import { colors, fonts, gradientAt, gradients } from '../theme/colors';
 
 type Thread = {
@@ -14,9 +17,13 @@ type Thread = {
   unread: boolean;
 };
 
+type MessageStatus = 'sending' | 'sent' | 'failed';
+
 type Message = {
+  id: string;
   from: 'me' | 'them';
   text: string;
+  status?: MessageStatus;
 };
 
 const THREADS: Thread[] = [
@@ -28,11 +35,21 @@ const THREADS: Thread[] = [
   { id: 6, name: 'Frame House', preview: 'We have a slot Friday if needed.', time: 'Sun', unread: false },
 ];
 
-const CONVERSATION: Message[] = [
-  { from: 'them', text: "Hi! I'd like to check availability for Sep 18." },
-  { from: 'me', text: 'Yes, I have a slot at 4pm that day.' },
-  { from: 'them', text: 'Sure, 4pm works great for me!' },
-];
+const INITIAL_MESSAGES: Record<number, Message[]> = {
+  1: [
+    { id: 'm1', from: 'them', text: "Hi! I'd like to check availability for Sep 18." },
+    { id: 'm2', from: 'me', text: 'Yes, I have a slot at 4pm that day.', status: 'sent' },
+    { id: 'm3', from: 'them', text: 'Sure, 4pm works great for me!' },
+  ],
+};
+
+// No messages backend exists yet, so sends are simulated locally with a short
+// delay. Typing "fail" as a message previews the failed/retry state.
+function simulateSend(text: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => (/fail/i.test(text) ? reject(new Error('send failed')) : resolve()), 650);
+  });
+}
 
 type Props = {
   onNavigate?: (tab: NavTab, opts?: { threadId?: number }) => void;
@@ -43,7 +60,11 @@ type Props = {
 export function MessagesScreen({ onNavigate, initialThreadId, onThreadConsumed }: Props) {
   const insets = useSafeAreaInsets();
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [messagesByThread, setMessagesByThread] = useState(INITIAL_MESSAGES);
+  const [draft, setDraft] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
   const active = THREADS.find((t) => t.id === activeId) ?? null;
+  const messages = (activeId && messagesByThread[activeId]) || [];
 
   useEffect(() => {
     if (initialThreadId) {
@@ -52,11 +73,44 @@ export function MessagesScreen({ onNavigate, initialThreadId, onThreadConsumed }
     }
   }, [initialThreadId, onThreadConsumed]);
 
+  const updateMessage = (threadId: number, id: string, patch: Partial<Message>) => {
+    setMessagesByThread((prev) => ({
+      ...prev,
+      [threadId]: (prev[threadId] ?? []).map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    }));
+  };
+
+  const attemptSend = async (threadId: number, id: string, text: string) => {
+    updateMessage(threadId, id, { status: 'sending' });
+    try {
+      await simulateSend(text);
+      updateMessage(threadId, id, { status: 'sent' });
+    } catch {
+      updateMessage(threadId, id, { status: 'failed' });
+    }
+  };
+
+  const handleSend = () => {
+    const text = draft.trim();
+    if (!text || !active) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const id = `${Date.now()}`;
+    setMessagesByThread((prev) => ({ ...prev, [active.id]: [...(prev[active.id] ?? []), { id, from: 'me', text, status: 'sending' }] }));
+    setDraft('');
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    attemptSend(active.id, id, text);
+  };
+
+  const handleRetry = (id: string, text: string) => {
+    if (!active) return;
+    attemptSend(active.id, id, text);
+  };
+
   return (
     <View style={styles.screen}>
       <AmbientBackground />
       {active ? (
-        <>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[styles.threadHeader, { paddingTop: insets.top + 4 }]}>
             <TouchableOpacity onPress={() => setActiveId(null)} hitSlop={10} style={styles.backButton}>
               <Text style={styles.backIcon}>‹</Text>
@@ -68,31 +122,74 @@ export function MessagesScreen({ onNavigate, initialThreadId, onThreadConsumed }
             </View>
           </View>
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.messagesContent}>
-            {CONVERSATION.map((m, i) => (
-              <View key={i} style={[styles.messageRow, m.from === 'me' && styles.messageRowMe]}>
-                {m.from === 'me' ? (
-                  <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.bubble, styles.bubbleMe]}>
-                    <Text style={[styles.bubbleText, styles.bubbleTextMe]}>{m.text}</Text>
-                  </LinearGradient>
-                ) : (
-                  <View style={[styles.bubble, styles.bubbleThem]}>
-                    <Text style={styles.bubbleText}>{m.text}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </ScrollView>
+          {messages.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center' }}>
+              <EmptyState title="No messages yet" subtitle={`Say hello to ${active.name} to start the conversation.`} />
+            </View>
+          ) : (
+            <ScrollView
+              ref={scrollRef}
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.messagesContent}
+              onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+            >
+              {messages.map((m) => (
+                <View key={m.id} style={[styles.messageRow, m.from === 'me' && styles.messageRowMe]}>
+                  {m.from === 'me' ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <LinearGradient
+                        colors={gradients.accentButton}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.bubble, styles.bubbleMe, m.status === 'sending' && styles.bubbleSending]}
+                      >
+                        <Text style={[styles.bubbleText, styles.bubbleTextMe]}>{m.text}</Text>
+                      </LinearGradient>
+                      {m.status === 'sending' && <Text style={styles.statusText}>Sending…</Text>}
+                      {m.status === 'sent' && <Text style={styles.statusText}>Just now</Text>}
+                      {m.status === 'failed' && (
+                        <Text style={styles.statusTextFailed}>
+                          Failed to send ·{' '}
+                          <Text style={styles.retryLink} onPress={() => handleRetry(m.id, m.text)}>
+                            Retry
+                          </Text>
+                        </Text>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={[styles.bubble, styles.bubbleThem]}>
+                      <Text style={styles.bubbleText}>{m.text}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          )}
 
           <View style={[styles.composer, { paddingBottom: insets.bottom + 12 }]}>
             <View style={styles.composerInput}>
-              <Text style={styles.composerPlaceholder}>Message</Text>
+              <TextInput
+                style={styles.composerTextInput}
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="Message"
+                placeholderTextColor={colors.textMuted}
+                multiline
+              />
             </View>
-            <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.sendButton}>
-              <Text style={styles.sendIcon}>↑</Text>
-            </LinearGradient>
+            <ScalePressable
+              style={[styles.sendButton, !draft.trim() && styles.sendButtonDisabled]}
+              onPress={handleSend}
+              disabled={!draft.trim()}
+              scaleTo={0.9}
+            >
+              {draft.trim() ? (
+                <LinearGradient colors={gradients.accentButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+              ) : null}
+              <Text style={[styles.sendIcon, !draft.trim() && styles.sendIconDisabled]}>↑</Text>
+            </ScalePressable>
           </View>
-        </>
+        </KeyboardAvoidingView>
       ) : (
         <>
           <View style={[styles.listHeader, { paddingTop: insets.top + 4 }]}>
@@ -177,8 +274,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   bubbleMe: { borderRadius: 20, borderBottomRightRadius: 6 },
+  bubbleSending: { opacity: 0.55 },
   bubbleText: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 19, color: colors.textPrimary },
   bubbleTextMe: { color: colors.onAccent },
+  statusText: { fontFamily: fonts.regular, fontSize: 10.5, color: colors.textTertiary, marginTop: 4, marginRight: 2 },
+  statusTextFailed: { fontFamily: fonts.regular, fontSize: 10.5, color: colors.orange, marginTop: 4, marginRight: 2 },
+  retryLink: { color: colors.teal, fontFamily: fonts.medium },
   composer: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -191,15 +292,19 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     flex: 1,
-    height: 44,
+    minHeight: 44,
+    maxHeight: 110,
     borderRadius: 22,
     backgroundColor: colors.surfaceStrong,
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: 'center',
     paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  composerPlaceholder: { fontFamily: fonts.regular, fontSize: 14.5, color: colors.textTertiary },
-  sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  composerTextInput: { fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary, padding: 0 },
+  sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: colors.surfaceStrong },
+  sendButtonDisabled: {},
   sendIcon: { fontSize: 15, color: colors.onAccent },
+  sendIconDisabled: { color: colors.textMuted },
 });

@@ -77,5 +77,21 @@ service cloud.firestore {
         allow delete: if false;
       }
     }
+
+    // Booking requests from the Explore/Listing Detail mock-listing flow —
+    // a separate, unrelated data model from the gigs/bookings marketplace
+    // above (listings there are static UI data, not gig documents).
+    match /listing_bookings/{bookingId} {
+      // Slot-conflict checks need to see other clients' requests for the
+      // same provider/slot, so read is scoped to signed-in users rather than
+      // owner-only — consistent with jobs/gigs already being fully public.
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.client_id == request.auth.uid &&
+        request.resource.data.status == 'requested' &&
+        request.resource.data.keys().hasOnly(['listing_id', 'provider', 'date_label', 'time_label', 'note', 'client_id', 'status', 'created_at']);
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }
